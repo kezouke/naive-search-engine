@@ -178,3 +178,6 @@ cython_debug/
 .pypirc
 
 a.parquet
+app/data/*
+app/.venv.tar.gz
+app/a.parquet
