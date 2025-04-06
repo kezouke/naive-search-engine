@@ -10,11 +10,14 @@ services:
       - "9870:9870"
     volumes:
       - "./app:/app"
+      - "./a.parquet:/app/a.parquet"
     networks:
       - spark-cluster
     depends_on:
-      - cluster-slave-1
-      - cassandra-server
+      cassandra-server:
+        condition: service_healthy
+      cluster-slave-1:
+        condition: service_healthy
     hostname: cluster-master
     tty: true
     working_dir: /app
@@ -22,6 +25,7 @@ services:
     entrypoint: 
       - bash
       - /app/app.sh
+    platform: linux/amd64
     
   cluster-slave-1:
     image: firasj/spark-docker-cluster
@@ -30,22 +34,42 @@ services:
       - spark-cluster
     hostname: cluster-slave-1
     tty: true
-  # cluster-slave-2:
-  #   image: firasj/spark-docker-cluster
-  #   container_name: cluster-slave-2
-  #   networks:
-  #     - spark-cluster
-  #   depends_on:
-  #     - cluster-slave-1
-  #   hostname: cluster-slave-2
-  #   tty: true
+    platform: linux/amd64
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f Worker || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  #  cluster-slave-2:
+#     image: firasj/spark-docker-cluster
+#     container_name: cluster-slave-2
+#     networks:
+#       - spark-cluster
+#     depends_on:
+#       - cluster-slave-1
+#     hostname: cluster-slave-2
+#     tty: true
+
   cassandra-server:
     image: cassandra
     container_name: cassandra-server
+    mem_limit: 4g  # Minimum 4GB for Cassandra
+    environment:
+      - MAX_HEAP_SIZE=1G
+      - HEAP_NEWSIZE=256MG
+      - CASSANDRA_MAX_HEAP_SIZE=512M  # JVM heap max
+      - CASSANDRA_HEAP_NEWSIZE=256M   # JVM young generation
     ports:
       - "7000:7000"
+      - "9042:9042"
     networks:
       - spark-cluster
+    healthcheck:
+      test: [ "CMD-SHELL", "cqlsh -e 'DESCRIBE keyspaces'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
     
 
 networks:

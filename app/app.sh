@@ -10,6 +10,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install any packages
+pip install --upgrade pip setuptools wheel
+
 pip install -r requirements.txt  
 
 # Package the virtual env.
@@ -20,7 +22,7 @@ bash prepare_data.sh
 
 
 # Run the indexer
-bash index.sh data/sample.txt
+bash index.sh
 
 # Run the ranker
 bash search.sh "this is a query!"

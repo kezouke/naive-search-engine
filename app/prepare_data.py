@@ -1,27 +1,50 @@
 from pathvalidate import sanitize_filename
-from tqdm import tqdm
-from pyspark.sql import SparkSession
-
+from pyspark.sql import SparkSession, functions as F
+import os
 
 spark = SparkSession.builder \
-    .appName('data preparation') \
-    .master("local") \
+    .appName("data preparation") \
+    .master("local[2]") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.memory", "4g") \
     .config("spark.sql.parquet.enableVectorizedReader", "true") \
+    .config("spark.hadoop.fs.defaultFS", "hdfs://cluster-master:9000") \
     .getOrCreate()
 
+try:
+    # 1. Read with column pruning
+    df = spark.read.parquet("/a.parquet").select("id", "title", "text")
 
-df = spark.read.parquet("/a.parquet")
-n = 1000
-df = df.select(['id', 'title', 'text']).sample(fraction=100 * n / df.count(), seed=0).limit(n)
+    # 2. Efficient sampling
+    n = 1000
+    sampled_df = df.orderBy(F.rand(seed=0)).limit(n)
 
-
-def create_doc(row):
-    filename = "data/" + sanitize_filename(str(row['id']) + "_" + row['title']).replace(" ", "_") + ".txt"
-    with open(filename, "w") as f:
-        f.write(row['text'])
-
-
-df.foreach(create_doc)
+    # 3. Distributed file creation
+    os.makedirs("data", exist_ok=True)
 
 
-# df.write.csv("/index/data", sep = "\t")
+    def create_docs(partition):
+        for row in partition:
+            doc_id = str(row["id"])
+            doc_title = row["title"].replace(" ", "_")
+            safe_filename = f"{sanitize_filename(doc_id)}_{sanitize_filename(doc_title)}.txt"
+            with open(f"data/{safe_filename}", "w", encoding="utf-8") as f:
+                f.write(row["text"])
+
+
+    sampled_df.foreachPartition(create_docs)
+
+    # 4. Write TSV without coalesce
+    (sampled_df
+     .select(
+        F.col("id").cast("string").alias("doc_id"),
+        F.col("title").alias("doc_title"),
+        F.col("text").alias("doc_text")
+    )
+     .write
+     .option("sep", "\t")
+     .csv("/index/data", mode="overwrite")
+     )
+
+finally:
+    spark.stop()
