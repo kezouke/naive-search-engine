@@ -32,11 +32,16 @@ if __name__ == "__main__":
 
     # 2) Initialize Spark Session
     #    IMPORTANT: We configure the Spark Cassandra connector via .config(...)
+    # Initialize Spark Session with proper YARN configuration
     spark = SparkSession.builder \
         .appName("BM25_Ranker") \
-        .master("yarn") \
+        .config("spark.driver.memory", "2g") \
+        .config("spark.executor.memory", "2g") \
+        .config("spark.yarn.am.memory", "1g") \
+        .config("spark.hadoop.fs.defaultFS", "hdfs://cluster-master:9000") \
         .config("spark.cassandra.connection.host", "cassandra-server") \
         .config("spark.cassandra.connection.port", "9042") \
+        .config("spark.sql.extensions", "com.datastax.spark.connector.CassandraSparkExtensions") \
         .getOrCreate()
 
     # 3) Read global stats from Cassandra

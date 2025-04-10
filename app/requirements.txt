@@ -5,3 +5,4 @@ fastparquet==2022.12.0
 pathvalidate==2.5.2
 pyspark==3.5.5
 tqdm==4.65.0
+py4j

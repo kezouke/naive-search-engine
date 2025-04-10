@@ -17,9 +17,10 @@ pip install -r requirements.txt
 # Package the virtual env.
 venv-pack -o .venv.tar.gz
 
+hdfs dfs -chmod -R 755 /user/root/.sparkStaging
+
 # Collect data
 bash prepare_data.sh
-
 
 # Run the indexer
 bash index.sh

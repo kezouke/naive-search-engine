@@ -2,6 +2,11 @@ services:
   cluster-master:
     image: firasj/spark-docker-cluster
     container_name: cluster-master
+    environment:
+      - HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - YARN_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - PYSPARK_PYTHON=/app/.venv/bin/python
+      - PYSPARK_DRIVER_PYTHON=/app/.venv/bin/python
     ports:
       - "8088:8088"
       - "4040:4040"
@@ -11,6 +16,9 @@ services:
     volumes:
       - "./app:/app"
       - "./a.parquet:/app/a.parquet"
+      - "./my-hadoop-config/capacity-scheduler.xml:/usr/local/hadoop/etc/hadoop/capacity-scheduler.xml"
+      - "./my-hadoop-config/yarn-site.xml:/usr/local/hadoop/etc/hadoop/yarn-site.xml"
+      - "./my-hadoop-config/container-executor.cfg:/usr/local/hadoop/etc/hadoop/container-executor.cfg"
     networks:
       - spark-cluster
     depends_on:
@@ -21,8 +29,7 @@ services:
     hostname: cluster-master
     tty: true
     working_dir: /app
-    # You can comment the entrypoint to run the script manually inside the container
-    entrypoint: 
+    entrypoint:
       - bash
       - /app/app.sh
     platform: linux/amd64
@@ -30,6 +37,15 @@ services:
   cluster-slave-1:
     image: firasj/spark-docker-cluster
     container_name: cluster-slave-1
+    environment:
+      - HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - YARN_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - PYSPARK_PYTHON=/app/.venv/bin/python
+      - PYSPARK_DRIVER_PYTHON=/app/.venv/bin/python
+    volumes:
+      - "./my-hadoop-config/capacity-scheduler.xml:/usr/local/hadoop/etc/hadoop/capacity-scheduler.xml"
+      - "./my-hadoop-config/yarn-site.xml:/usr/local/hadoop/etc/hadoop/yarn-site.xml"
+      - "./my-hadoop-config/container-executor.cfg:/usr/local/hadoop/etc/hadoop/container-executor.cfg"
     networks:
       - spark-cluster
     hostname: cluster-slave-1
@@ -41,15 +57,25 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-  #  cluster-slave-2:
-#     image: firasj/spark-docker-cluster
-#     container_name: cluster-slave-2
-#     networks:
-#       - spark-cluster
-#     depends_on:
-#       - cluster-slave-1
-#     hostname: cluster-slave-2
-#     tty: true
+  cluster-slave-2:
+    image: firasj/spark-docker-cluster
+    container_name: cluster-slave-2
+    environment:
+      - HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - YARN_CONF_DIR=/usr/local/hadoop/etc/hadoop
+      - PYSPARK_PYTHON=/app/.venv/bin/python
+      - PYSPARK_DRIVER_PYTHON=/app/.venv/bin/python
+    volumes:
+      - "./my-hadoop-config/capacity-scheduler.xml:/usr/local/hadoop/etc/hadoop/capacity-scheduler.xml"
+      - "./my-hadoop-config/yarn-site.xml:/usr/local/hadoop/etc/hadoop/yarn-site.xml"
+      - "./my-hadoop-config/container-executor.cfg:/usr/local/hadoop/etc/hadoop/container-executor.cfg"
+    networks:
+      - spark-cluster
+    depends_on:
+       - cluster-slave-1
+    hostname: cluster-slave-2
+    tty: true
+    platform: linux/amd64
 
   cassandra-server:
     image: cassandra

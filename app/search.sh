@@ -1,28 +1,24 @@
 #!/bin/bash
-# This script takes a query string as an argument and runs query.py on YARN.
 
-# Activate the Python virtual environment.
-source .venv/bin/activate
+echo "===== Running Search ====="
 
-# Set the Python executable for Spark.
+source /app/.venv/bin/activate
+
 export PYSPARK_DRIVER_PYTHON=$(which python)
-export PYSPARK_PYTHON=./.venv/bin/python
+export PYSPARK_PYTHON=/app/.venv/bin/python
 
-# Check if a query was provided.
-if [ "$#" -lt 1 ]; then
-  echo "Usage: ./search.sh \"query string\""
-  exit 1
-fi
+QUERY="$1"
 
-# Capture the entire query string.
-QUERY="$*"
+unset PYSPARK_DRIVER_PYTHON
 
-# The Spark Cassandra Connector version.
-# For Spark 3.5.4 with Scala 2.12, try this connector version.
-CASSANDRA_CONNECTOR="com.datastax.spark:spark-cassandra-connector_2.12:3.3.0"
-
-spark-submit \
-  --master yarn \
-  --packages "$CASSANDRA_CONNECTOR" \
+spark-submit --master yarn \
+  --deploy-mode cluster \
+  --packages com.datastax.spark:spark-cassandra-connector_2.12:3.5.0 \
+  --conf spark.yarn.appMasterEnv.PYSPARK_PYTHON=/app/.venv/bin/python \
+  --conf spark.dynamicAllocation.enabled=true \
+  --conf spark.dynamicAllocation.minExecutors=1 \
+  --conf spark.dynamicAllocation.maxExecutors=4 \
   --archives /app/.venv.tar.gz#.venv \
   /app/query.py "$QUERY"
+
+echo "Done searching!"

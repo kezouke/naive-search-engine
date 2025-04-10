@@ -1,12 +1,17 @@
 #!/bin/bash
 # This will run only by the master node
 
-# starting HDFS daemons
+#chown root:root /usr/local/hadoop/bin/container-executor
+#chmod 6050 /usr/local/hadoop/bin/container-executor
+#chown root:root /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
+#chmod 400 /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
+
+# Start HDFS daemons
 $HADOOP_HOME/sbin/start-dfs.sh
 
-# starting Yarn daemons
+# Start YARN daemons
 $HADOOP_HOME/sbin/start-yarn.sh
-# yarn --daemon start resourcemanager
+yarn --daemon start resourcemanager
 
 # Start mapreduce history server
 mapred --daemon start historyserver
@@ -41,3 +46,7 @@ jps -lm
 # Create a directory for root user on HDFS
 hdfs dfs -mkdir -p /user/root
 
+export HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+export YARN_CONF_DIR=/usr/local/hadoop/etc/hadoop
+echo $HADOOP_CONF_DIR
+echo $YARN_CONF_DIR
