@@ -4,7 +4,7 @@
   <!-- ================== Minimum/Increment/Maximum Container Memory ================== -->
   <property>
     <name>yarn.scheduler.minimum-allocation-mb</name>
-    <value>256</value>
+    <value>512</value>
   </property>
   <property>
     <name>yarn.scheduler.increment-allocation-mb</name>
@@ -107,5 +107,13 @@
     <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
   </property>
 
+  <property>
+    <name>yarn.log-aggregation-enable</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>yarn.nodemanager.webapp.address</name>
+    <value>0.0.0.0:8042</value>
+  </property>
   <!-- ============================= Container Executor (Optional) ============================= -->
 </configuration>

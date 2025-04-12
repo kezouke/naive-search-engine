@@ -35,13 +35,10 @@ if __name__ == "__main__":
     # Initialize Spark Session with proper YARN configuration
     spark = SparkSession.builder \
         .appName("BM25_Ranker") \
-        .config("spark.driver.memory", "2g") \
-        .config("spark.executor.memory", "2g") \
-        .config("spark.yarn.am.memory", "1g") \
-        .config("spark.hadoop.fs.defaultFS", "hdfs://cluster-master:9000") \
+        .config("spark.sql.parquet.enableVectorizedReader", "true") \
         .config("spark.cassandra.connection.host", "cassandra-server") \
         .config("spark.cassandra.connection.port", "9042") \
-        .config("spark.sql.extensions", "com.datastax.spark.connector.CassandraSparkExtensions") \
+        .config("spark.driver.host", "cluster-master") \
         .getOrCreate()
 
     # 3) Read global stats from Cassandra

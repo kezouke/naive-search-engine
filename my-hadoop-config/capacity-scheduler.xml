@@ -78,6 +78,14 @@
     <name>yarn.scheduler.capacity.root.default.default-application-lifetime</name>
     <value>-1</value>
   </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.acl_application_max_priority</name>
+    <value>*</value>
+    <description>
+      The ACL of who can submit applications with configured priority.
+      For e.g, [user={name} group={name} max_priority={priority} default_priority={priority}]
+    </description>
+  </property>
 
   <!-- ============ Node Locality Delay, etc. ============ -->
   <property>

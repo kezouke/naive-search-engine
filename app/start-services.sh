@@ -1,52 +1,116 @@
 #!/bin/bash
-# This will run only by the master node
 
-#chown root:root /usr/local/hadoop/bin/container-executor
-#chmod 6050 /usr/local/hadoop/bin/container-executor
-#chown root:root /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
-#chmod 400 /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
+# -----------------------------------------------------------------------------
+# Hadoop & Spark Cluster Initialization Script (Master Node)
+# -----------------------------------------------------------------------------
 
-# Start HDFS daemons
+# Ensure script is executed as root if using container-executor (optional)
+# chown root:root /usr/local/hadoop/bin/container-executor
+# chmod 6050 /usr/local/hadoop/bin/container-executor
+# chown root:root /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
+# chmod 400 /usr/local/hadoop/etc/hadoop/container-executor.cfg || true
+
+# -----------------------------------------------------------------------------
+# Start Hadoop Distributed File System (HDFS) and YARN daemons
+# -----------------------------------------------------------------------------
+
+echo "Starting HDFS daemons..."
 $HADOOP_HOME/sbin/start-dfs.sh
 
-# Start YARN daemons
+echo "Starting YARN daemons..."
 $HADOOP_HOME/sbin/start-yarn.sh
 yarn --daemon start resourcemanager
 
-# Start mapreduce history server
+# -----------------------------------------------------------------------------
+# Start MapReduce Job History Server
+# -----------------------------------------------------------------------------
+
+echo "Starting MapReduce Job History Server..."
 mapred --daemon start historyserver
 
+# -----------------------------------------------------------------------------
+# Verify running Java processes and Hadoop services
+# -----------------------------------------------------------------------------
 
-# track process IDs of services
+echo "Currently running Java processes (jps)..."
 jps -lm
 
-# subtool to perform administrator functions on HDFS
-# outputs a brief report on the overall HDFS filesystem
+# -----------------------------------------------------------------------------
+# Perform HDFS admin checks
+# -----------------------------------------------------------------------------
+
+echo "HDFS Report:"
 hdfs dfsadmin -report
 
-# If namenode in safemode then leave it
+echo "Exiting HDFS Safe Mode (if active)..."
 hdfs dfsadmin -safemode leave
 
-# create a directory for spark apps in HDFS
+# -----------------------------------------------------------------------------
+# Set up Spark JARs directory in HDFS
+# -----------------------------------------------------------------------------
+
+echo "Creating directory for Spark JARs in HDFS..."
 hdfs dfs -mkdir -p /apps/spark/jars
 hdfs dfs -chmod 744 /apps/spark/jars
 
-
-# Copy all jars to HDFS
+echo "Uploading local Spark JARs to HDFS..."
 hdfs dfs -put /usr/local/spark/jars/* /apps/spark/jars/
 hdfs dfs -chmod +rx /apps/spark/jars/
 
+# -----------------------------------------------------------------------------
+# Download and use official Spark 3.5.5 binaries (only if not already present)
+# -----------------------------------------------------------------------------
 
-# print version of Scala of Spark
+SPARK_ARCHIVE="spark-3.5.5-bin-hadoop3.tgz"
+SPARK_DIR="spark-3.5.5-bin-hadoop3"
+
+if [ ! -f "$SPARK_ARCHIVE" ]; then
+    echo "Downloading Spark 3.5.5..."
+    wget https://archive.apache.org/dist/spark/spark-3.5.5/$SPARK_ARCHIVE
+else
+    echo "$SPARK_ARCHIVE already exists. Skipping download."
+fi
+
+# Extract if directory doesn't exist
+if [ ! -d "$SPARK_DIR" ]; then
+    echo "Extracting Spark archive..."
+    tar -xzf $SPARK_ARCHIVE
+else
+    echo "Spark directory $SPARK_DIR already exists. Skipping extraction."
+fi
+
+echo "Replacing existing Spark JARs in HDFS with Spark 3.5.5 distribution..."
+hdfs dfs -rm -r /apps/spark/jars/*
+hdfs dfs -put spark-3.5.5-bin-hadoop3/jars/* /apps/spark/jars/
+hdfs dfs -chmod 744 /apps/spark/jars
+hdfs dfs -chmod +rx /apps/spark/jars/
+
+# -----------------------------------------------------------------------------
+# Restart HDFS and YARN daemons (to reflect any changes)
+# -----------------------------------------------------------------------------
+
+echo "Restarting HDFS and YARN daemons..."
+$HADOOP_HOME/sbin/stop-dfs.sh
+$HADOOP_HOME/sbin/stop-yarn.sh
+
+$HADOOP_HOME/sbin/start-dfs.sh
+$HADOOP_HOME/sbin/start-yarn.sh
+
+# -----------------------------------------------------------------------------
+# Miscellaneous setup and validation
+# -----------------------------------------------------------------------------
+
+echo "Scala version in use:"
 scala -version
 
-# track process IDs of services
+echo "Rechecking running Java processes..."
 jps -lm
 
-# Create a directory for root user on HDFS
+echo "Creating HDFS home directory for root user (if not already exists)..."
 hdfs dfs -mkdir -p /user/root
 
+# Export HADOOP configuration directory for use by other tools
 export HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
-export YARN_CONF_DIR=/usr/local/hadoop/etc/hadoop
-echo $HADOOP_CONF_DIR
-echo $YARN_CONF_DIR
+echo "HADOOP_CONF_DIR set to: $HADOOP_CONF_DIR"
+
+echo "Cluster initialization completed."
