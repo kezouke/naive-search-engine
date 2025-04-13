@@ -1,4 +1,0 @@
-DOC	1	Art	10
-DOC	2	Science	20
-DOC	3	History	15
-

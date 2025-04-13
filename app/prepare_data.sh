@@ -10,7 +10,7 @@ export PYSPARK_DRIVER_PYTHON=$(which python)
 unset PYSPARK_PYTHON
 
 # 1) Copy the parquet file from local container filesystem to HDFS at /a.parquet
-hdfs dfs -put -f a.parquet /
+hdfs dfs -put /app/a.parquet /a.parquet
 
 # Create parent directory for index if it doesn't exist
 hdfs dfs -mkdir -p /index
